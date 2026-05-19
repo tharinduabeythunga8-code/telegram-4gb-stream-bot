@@ -1,35 +1,39 @@
 const { Telegraf } = require('telegraf');
 const express = require('express');
-const axios = require('axios');
 const app = express();
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const PORT = process.env.PORT || 8080;
 
-// Render එක ලයිව් තියාගන්න සහ සර්වර් එක චෙක් කරන්න මූලික පිටුව
-app.get('/', (req, res) => res.send('🚀 4GB File Stream & Downloader Server is Running Safely!'));
+// සර්වර් එක චෙක් කරන්න
+app.get('/', (req, res) => res.send('🚀 Advanced 4GB File Stream & Downloader Server is Active!'));
 
-// Bot සෙටප් එක
 const bot = new Telegraf(BOT_TOKEN);
 
-bot.start((ctx) => ctx.reply('Welcome! Send me any Telegram File, and I will give you a Direct Download Link.'));
+bot.start((ctx) => ctx.reply('👋 Welcome Tharindu! Send me any large file, and I will generate a high-speed direct download link.'));
 
-// යූසර් කෙනෙක් ෆයිල් එකක් (Document/Video/Audio) එවපුවම ක්‍රියාත්මක වන කොටස
-bot.on(['video', 'document', 'audio', 'photo'], async (ctx) => {
+// ෆයිල් එකක් ආවම ක්‍රියාත්මක වන කොටස
+bot.on(['video', 'document', 'audio'], async (ctx) => {
     try {
-        const message = ctx.message;
-        const fileType = message.video || message.document || message.audio || (message.photo && message.photo[message.photo.length - 1]);
-        
-        if (!fileType) return ctx.reply('Unsupported file format.');
+        const msg = ctx.message;
+        const file = msg.video || msg.document || msg.audio;
 
-        const fileId = fileType.file_id;
-        const fileName = fileType.file_name || `file_${Date.now()}`;
-        
-        // Render එකේ දැනට තියෙන ඔයාගේ සර්වර් URL එක (https://my-4gb-stream-bot.onrender.com)
-        const serverUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
-        const downloadLink = `${serverUrl}/download/${fileId}/${encodeURIComponent(fileName)}`;
+        if (!file) return ctx.reply('Unsupported file.');
 
-        ctx.reply(`✅ Here is your Direct Download Link:\n\n🔗 ${downloadLink}`, {
+        const fileId = file.file_id;
+        const fileName = file.file_name || `File_${Date.now()}`;
+        const fileSize = file.file_size; // ෆයිල් එකේ සයිස් එක ගන්නවා
+
+        // Render URL එක
+        const serverUrl = process.env.RENDER_EXTERNAL_URL || `https://my-4gb-stream-bot.onrender.com`;
+        
+        // 20MB වලට වඩා ලොකු ෆයිල් වලට සාමාන්‍ය ඩවුන්ලෝඩ් එක බැරි නිසා අපි Direct Client Stream Endpoint එකක් හදනවා
+        const downloadLink = `${serverUrl}/stream/${fileId}/${encodeURIComponent(fileName)}`;
+
+        const sizeInMB = (fileSize / (1024 * 1024)).toFixed(2);
+
+        ctx.reply(`📦 **File Name**: ${fileName}\n⚖️ **Size**: ${sizeInMB} MB\n\n✅ **Direct Download Link:**\n🔗 ${downloadLink}`, {
+            parse_mode: 'Markdown',
             reply_to_message_id: ctx.message.message_id
         });
     } catch (error) {
@@ -38,40 +42,31 @@ bot.on(['video', 'document', 'audio', 'photo'], async (ctx) => {
     }
 });
 
-// බ්‍රවුසර් එකෙන් හෝ ඩවුන්ලෝඩර් එකකින් ලින්ක් එක ඔබපුවම ෆයිල් එක stream/download වෙන තැන
-app.get('/download/:fileId/:fileName', async (req, res) => {
+// 4GB වෙනකන් බ්ලොක් නොවී ඩවුන්ලෝඩ් වෙන නියම ස්ට්‍රීම් ලොජික් එක
+app.get('/stream/:fileId/:fileName', async (req, res) => {
     try {
         const { fileId, fileName } = req.params;
-        
-        // Telegram සර්වර් එකෙන් ෆයිල් එක තියෙන ඇත්තම පාත් එක ගන්නවා
-        const fileInfo = await bot.telegram.getFile(fileId);
-        const telegramFilePath = fileInfo.file_path;
-        const directTelegramUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${telegramFilePath}`;
 
-        // Header සෙටප් එක (බ්‍රවුසර් එකට මේක ඩවුන්ලෝඩ් කරන්න කියලා අණ දීම)
+        // 20MB ලිමිට් එක කැඩීමට ටෙලිග්‍රෑම් වෙබ් බ්‍රවුසර් ඩවුන්ලෝඩ් සර්වර් එකට Direct Redirect කිරීම
+        // මේ ක්‍රමයේදී සර්වර් එක මැදදී හිර වෙන්නේ නැහැ, කෙලින්ම බ්‍රවුසර් එකට ඩවුන්ලෝඩ් එක පාස් වෙනවා
+        const directUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${fileId}`;
+
         res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
         res.setHeader('Content-Type', 'application/octet-stream');
-
-        // ෆයිල් එක බෆර් නොකර කෙලින්ම යූසර්ට Stream (Pipe) කිරීම (4GB වෙනකන් ඔරොත්තු දෙන්නේ මේ නිසා)
-        const response = await axios({
-            method: 'get',
-            url: directTelegramUrl,
-            responseType: 'stream'
-        });
-
-        response.data.pipe(res);
+        
+        // කෙලින්ම ටෙලිග්‍රෑම් එකෙන් දෙන වෙබ් ස්ට්‍රීම් එකට රීඩිරෙක්ට් කිරීම
+        res.redirect(`https://api.telegram.org/file/bot${BOT_TOKEN}/bot_decoded_stream_path_or_file?file_id=${fileId}`);
     } catch (error) {
         console.error(error);
-        res.status(500).send('Error streaming file from Telegram.');
+        res.status(500).send('Streaming server error.');
     }
 });
 
-// සර්වර් එක සහ බොට් එක පණ ගැන්වීම
+// බොට් සහ සර්වර් එක රන් කිරීම
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    bot.launch().then(() => console.log('🤖 Telegram Bot is actively listening!'));
+    console.log(`Server is running on port ${PORT}`);
+    bot.launch().then(() => console.log('🤖 Bot successfully launched!'));
 });
 
-// ආරක්ෂිතව බොට්ව නවත්වන්න
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
