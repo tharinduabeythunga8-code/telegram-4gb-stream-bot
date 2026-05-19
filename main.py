@@ -4,11 +4,11 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from telethon import TelegramClient
 
-# ⚠️ ඔයාගේ විස්තර ටික මෙතනට කෙලින්ම දෙන්න
-API_ID = 36130475  # 👈 ඔයාගේ API ID එක (Number එකක් විදිහට)
+# ⚠️ ඔයාගේ ඇත්තම විස්තර ටික මෙතනට කෙලින්ම දෙන්න
+API_ID = 36130475  # 👈 ඔයාගේ API ID එක
 API_HASH = "94fa20937754a3bbe85ade6441ecace4"  # 👈 ඔයාගේ API HASH එක
 BOT_TOKEN = "8961189305:AAE2IByMuTjT-sNVV8PibBADswaPWZPNa3g"  # 👈 BotFather ගෙන් ගත්ත BOT TOKEN එක
-OWNER_ID = "-1001816353852"  # 👈 ඔයාගේ ටෙලිග්‍රෑම් ID එක (හෝ චැනල් ID)
+OWNER_ID = "-1002455117852"  # 👈 ඔයාගේ -100 කෑල්ල සහිත චැනල් ID එක
 
 app = FastAPI()
 client = TelegramClient('bot_session', API_ID, API_HASH)
@@ -17,7 +17,11 @@ client = TelegramClient('bot_session', API_ID, API_HASH)
 def read_root():
     return {"status": "🚀 Pure Python MTProto 4GB Stream Server is Online!"}
 
-# 4GB direct streaming logic
+@app.head("/")
+async def head_root():
+    return None
+
+# Chunk වශයෙන් ස්ට්‍රීම් කරන generator එක
 async def stream_generator(download_iter):
     async for chunk in download_iter:
         yield chunk
@@ -25,23 +29,21 @@ async def stream_generator(download_iter):
 @app.get("/download/{msg_id}/{file_name}")
 async def download_file(msg_id: int, file_name: str):
     try:
-        # OWNER_ID එක string එකක් නම් integer එකක් බවට හරවයි
         peer = int(OWNER_ID) if OWNER_ID.isdigit() or OWNER_ID.startswith('-') else OWNER_ID
         
-        # ටෙලිග්‍රෑම් එකෙන් මැසේජ් එක ගනියි
+        # ටෙලිග්‍රෑම් එකෙන් මැසේජ් එක කියවීම
         msg = await client.get_messages(peer, ids=msg_id)
         
         if not msg or not msg.media:
             raise HTTPException(status_code=404, detail="Media not found")
 
-        # ෆයිල් සයිස් එක ගනියි
+        # ෆයිල් සයිස් එක චෙක් කිරීම
         file_size = msg.document.size if msg.document else (msg.video.size if msg.video else None)
         if not file_size:
             raise HTTPException(status_code=400, detail="Invalid media type")
 
-        # 4GB දක්වා Chunk වශයෙන් ස්ට්‍රීම් කිරීම පටන් ගනියි
-        # ✅ නිවැරදි අලුත් පේළිය
-download_iter = client.iter_download(msg.media, request_size=512 * 1024)
+        # Telethon නිවැරදි ස්ට්‍රීඩින් මෙතඩ් එක (iter_download)
+        download_iter = client.iter_download(msg.media, request_size=512 * 1024)
 
         headers = {
             "Content-Disposition": f'attachment; filename="{file_name}"',
@@ -54,7 +56,7 @@ download_iter = client.iter_download(msg.media, request_size=512 * 1024)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# සර්වර් එක පණ ගැන්වීමට පෙර බොට් ලොග් කරවීම
+# බොට් සර්වර් එකට ලොග් කරවීම
 @app.on_event("startup")
 async def startup_event():
     print("🤖 Starting Telethon Client...")
@@ -63,6 +65,5 @@ async def startup_event():
 
 if __name__ == "__main__":
     import uvicorn
-    # Render එකට අවශ්‍ය Port එක සෙට් කිරීම
     port = int(os.environ.get("PORT", 8080))
     uvicorn.run(app, host="0.0.0.0", port=port)
