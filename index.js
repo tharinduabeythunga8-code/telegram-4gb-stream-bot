@@ -8,8 +8,7 @@ const apiHash = process.env.API_HASH ? process.env.API_HASH.trim() : "";
 const botToken = process.env.BOT_TOKEN ? process.env.BOT_TOKEN.trim() : "";
 const PORT = process.env.PORT || 8080;
 
-// මුල් පිටුව සෙටප් කිරීම
-app.get('/', (req, res) => res.send('🚀 Pure MTProto 4GB Stream Server is Online!'));
+app.get('/', (req, res) => res.send('🚀 Pure MTProto 4GB Stream Server is Active!'));
 
 const stringSession = new StringSession(""); 
 const client = new TelegramClient(stringSession, apiId, apiHash, {
@@ -56,21 +55,18 @@ app.get('/download/:msgId/:fileName', async (req, res) => {
     }
 });
 
-// 🌟 බෝට් ටෝකන් එක නිවැරදිවම ලොග් කරවන ඇත්තම ක්‍රමය
+// 🔥 GramJS වල බොට් කෙනෙක් ලොග් කරවන 100% නිවැරදි ක්‍රමය
 (async () => {
     try {
-        console.log("🤖 Connecting to Telegram core...");
-        await client.connect(); // මුලින්ම සර්වර් එකට කනෙක්ට් වෙනවා
+        console.log("🤖 Connecting to Telegram Core via MTProto...");
+        await client.connect(); 
         
-        console.log("🔑 Authenticating using Bot Token raw method...");
-        // GramJS වල .start() එකේ එන ලෙඩේ මඟහැරීමට කෙලින්ම Telegram API එකට Bot Token එක පාස් කිරීම
-        await client.invoke(
-            new Api.auth.SignIn({
-                botToken: botToken,
-                apiId: apiId,
-                apiHash: apiHash
-            })
-        );
+        console.log("🔑 Logging in using Pure Bot Token Session...");
+        
+        // GramJS ලයිබ්‍රරි එක ඇතුලේ බොට් කෙනෙක් විදිහට සාර්ථකව Sign In වීමට ඇති එකම නිවැරදි Function එක
+        await client.signIn({
+            botToken: botToken
+        });
         
         console.log("✅ 100% Successfully logged in as Bot via MTProto!");
 
