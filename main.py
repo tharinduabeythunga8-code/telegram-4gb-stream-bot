@@ -4,11 +4,11 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from telethon import TelegramClient
 
-# ⚠️ ඔයාගේ ඇත්තම විස්තර ටික මෙතනට කෙලින්ම දෙන්න
-API_ID = 36130475  # 👈 ඔයාගේ API ID එක
-API_HASH = "94fa20937754a3bbe85ade6441ecace4"  # 👈 ඔයාගේ API HASH එක
-BOT_TOKEN = "8961189305:AAE2IByMuTjT-sNVV8PibBADswaPWZPNa3g"  # 👈 BotFather ගෙන් ගත්ත BOT TOKEN එක
-OWNER_ID = "-1002455117852"  # 👈 ඔයාගේ -100 කෑල්ල සහිත චැනල් ID එක
+# ⚙️ ඔයා ලබාදුන් නිවැරදි විස්තර ටික මෙතනට ඇතුලත් කර ඇත
+API_ID = 36130475  
+API_HASH = "94fa20937754a3bbe85ade6441ecace4"  
+BOT_TOKEN = "8961189305:AAE2IByMuTjT-sNVV8PibBADswaPWZPNa3g"  
+OWNER_ID = "-1002455117852"  # 👈 ඔයාගේ -100 සහිත චැනල් ID එක
 
 app = FastAPI()
 client = TelegramClient('bot_session', API_ID, API_HASH)
@@ -42,7 +42,7 @@ async def download_file(msg_id: int, file_name: str):
         if not file_size:
             raise HTTPException(status_code=400, detail="Invalid media type")
 
-        # Telethon නිවැරදි ස්ට්‍රීඩින් මෙතඩ් එක (iter_download)
+        # Telethon නිවැරදි ස්ට්‍රීඩින් මෙතඩ් එක
         download_iter = client.iter_download(msg.media, request_size=512 * 1024)
 
         headers = {
@@ -56,12 +56,21 @@ async def download_file(msg_id: int, file_name: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# බොට් සර්වර් එකට ලොග් කරවීම
+# බොට් සර්වර් එකට ලොග් කරවීම සහ චැනල් එක Cache කරවීම
 @app.on_event("startup")
 async def startup_event():
-    print("🤖 Starting Telethon Client...")
-    await client.start(bot_token=BOT_TOKEN)
-    print("✅ 100% Successfully logged in as Bot via Telethon!")
+    try:
+        print("🤖 Starting Telethon Client...")
+        await client.start(bot_token=BOT_TOKEN)
+        print("✅ 100% Successfully logged in as Bot via Telethon!")
+        
+        # බොටාට චැනල් එක බලහත්කාරයෙන් අඳුන්වලා දීම (Entity Fix)
+        peer = int(OWNER_ID) if OWNER_ID.isdigit() or OWNER_ID.startswith('-') else OWNER_ID
+        await client.get_entity(peer)
+        print("📁 [SUCCESS] Channel Entity cached and ready for streaming!")
+        
+    except Exception as e:
+        print(f"⚠️ Startup Error: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
