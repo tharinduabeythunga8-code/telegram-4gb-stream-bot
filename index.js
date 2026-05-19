@@ -1,4 +1,4 @@
-const { TelegramClient, Api } = require('telegram');
+const { TelegramClient } = require('telegram');
 const { StringSession } = require('telegram/sessions');
 const express = require('express');
 const app = express();
@@ -55,17 +55,19 @@ app.get('/download/:msgId/:fileName', async (req, res) => {
     }
 });
 
-// 🔥 GramJS වල බොට් කෙනෙක් ලොග් කරවන 100% නිවැරදි ක්‍රමය
+// 🌟 GramJS වල සර්වර් එකක් ඇතුලේ බොට් කෙනෙක් 100% ක්‍රෑෂ් නොවී ස්ටාර්ට් කරන නිවැරදිම ක්‍රමය
 (async () => {
     try {
         console.log("🤖 Connecting to Telegram Core via MTProto...");
-        await client.connect(); 
         
-        console.log("🔑 Logging in using Pure Bot Token Session...");
-        
-        // GramJS ලයිබ්‍රරි එක ඇතුලේ බොට් කෙනෙක් විදිහට සාර්ථකව Sign In වීමට ඇති එකම නිවැරදි Function එක
-        await client.signIn({
-            botToken: botToken
+        // GramJS වලට ටර්මිනල් එකෙන් Input ඉල්ලන්න ඉඩ නොදී, 
+        // බොට් ටෝකන් එකෙන් විතරක් ලොග් වෙන්න කියලා මෙන්න මේ විදිහට Object එකක් පාස් කරන්න ඕනේ
+        await client.start({
+            botToken: botToken,
+            forceSMS: false,
+            password: async () => "",
+            phoneCode: async () => "",
+            onError: (err) => console.log("GramJS Inner Error:", err.message)
         });
         
         console.log("✅ 100% Successfully logged in as Bot via MTProto!");
