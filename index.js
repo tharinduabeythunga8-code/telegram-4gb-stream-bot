@@ -3,25 +3,29 @@ const { StringSession } = require('telegram/sessions');
 const express = require('express');
 const app = express();
 
-const apiId = parseInt(process.env.API_ID);
-const apiHash = process.env.API_HASH ? process.env.API_HASH.trim() : "";
-const botToken = process.env.BOT_TOKEN ? process.env.BOT_TOKEN.trim() : "";
+// ⚠️ මෙතනට ඔයාගේ ඇත්තම විස්තර ටික " " ඇතුලේ කෙලින්ම ඇතුලත් කරන්න!
+const apiId = 36130475; // 👈 ඔයාගේ API ID එක (Number එකක් විදිහට)
+const apiHash = "94fa20937754a3bbe85ade6441ecace4"; // 👈 ඔයාගේ API HASH එක
+const botToken = "8961189305:AAE2IByMuTjT-sNVV8PibBADswaPWZPNa3g"; // 👈 BotFather ගෙන් ගත්ත BOT TOKEN එක
+const OWNER_ID = "6435171356"; // 👈 ඔයාගේ ටෙලිග්‍රෑම් ID එක (files තියෙන චැනල්/චැට් එකේ)
+
 const PORT = process.env.PORT || 8080;
 
-app.get('/', (req, res) => res.send('🚀 MTProto 4GB Stream Bot is Active!'));
+app.get('/', (req, res) => res.send('🚀 Pure Hardcoded MTProto Stream Server is Online!'));
 
 const stringSession = new StringSession(""); 
 const client = new TelegramClient(stringSession, apiId, apiHash, {
     connectionRetries: 5,
 });
 
-// Stream Endpoint
+// 4GB Direct Stream Endpoint
 app.get('/download/:msgId/:fileName', async (req, res) => {
     try {
         const { msgId, fileName } = req.params;
-        const peer = process.env.OWNER_ID; 
+        const peer = OWNER_ID; 
         
         const messages = await client.getMessages(peer, { ids: [parseInt(msgId)] });
+        
         if (!messages || messages.length === 0 || !messages[0].media) {
             return res.status(404).send("File not found.");
         }
@@ -34,7 +38,7 @@ app.get('/download/:msgId/:fileName', async (req, res) => {
         res.setHeader('Content-Type', 'application/octet-stream');
         res.setHeader('Content-Length', document.size);
 
-        const bufferSize = 512 * 1024;
+        const bufferSize = 512 * 1024; // 512KB Chunks
         let offset = 0;
 
         while (offset < document.size) {
@@ -54,25 +58,25 @@ app.get('/download/:msgId/:fileName', async (req, res) => {
     }
 });
 
-// සර්වර් එක සහ බොට් ස්ටාර්ට් කිරීම
+// සර්වර් එක පණ ගැන්වීම
 (async () => {
     try {
-        console.log("🤖 Initializing Telegram Connection...");
-        await client.connect();
+        console.log("🤖 Connecting to Telegram Core via Hardcoded Credentials...");
+        await client.connect(); 
         
-        console.log("🔑 Authenticating via Bot Token...");
-        // කිසිම කරදරයක් නැතුව කෙලින්ම සරලව ලොග් කරවන නිවැරදිම ක්‍රමය
+        console.log("🔑 Logging in with Bot Token directly...");
+        // කිසිම වැරදීමක් වෙන්න ඉඩක් නැති නිල GramJS ලොගින් මෙතඩ් එක
         await client.start({
-            botToken: () => Promise.resolve(botToken)
+            botToken: botToken
         });
         
-        console.log("✅ Logged in successfully via MTProto!");
+        console.log("✅ 100% Successfully logged in as Bot!");
 
         app.listen(PORT, () => {
-            console.log(`🚀 Web service running on port ${PORT}`);
+            console.log(`🚀 Web stream service actively running on port ${PORT}`);
         });
 
     } catch (err) {
-        console.error("❌ Auth Error:", err.message);
+        console.error("❌ Auth Failed:", err.message);
     }
 })();
