@@ -3,23 +3,26 @@ const { StringSession } = require('telegram/sessions');
 const express = require('express');
 const app = express();
 
-// ටෝකන් සහ අයිඩී ටික කෙලින්ම process.env හරහා ස්ථීරවම තහවුරු කරගන්නවා
-const apiId = Number(process.env.API_ID);
-const apiHash = String(process.env.API_HASH).trim();
-const botToken = String(process.env.BOT_TOKEN).trim();
+// Render එකේ Environment Variables වලින් අගයන් ගැනීම
+const apiId = parseInt(process.env.API_ID);
+const apiHash = process.env.API_HASH ? process.env.API_HASH.trim() : "";
+const botToken = process.env.BOT_TOKEN ? process.env.BOT_TOKEN.trim() : "";
 const PORT = process.env.PORT || 8080;
 
-// variables ටික හරියට තියෙනවද කියලා සර්වර් ලොග් එකේ චෙක් කරගන්න ප්‍රින්ට් එකක්
-console.log(`🔍 Checking configuration: API_ID=${apiId ? 'OK' : 'MISSING'}, API_HASH=${apiHash ? 'OK' : 'MISSING'}, BOT_TOKEN=${botToken ? 'OK' : 'MISSING'}`);
+console.log(`🔍 Checking variables: API_ID=${apiId ? 'OK' : 'MISSING'}, API_HASH=${apiHash ? 'OK' : 'MISSING'}, BOT_TOKEN=${botToken ? 'OK' : 'MISSING'}`);
 
+// හිස් සෙෂන් එකක් ආරම්භ කිරීම
 const stringSession = new StringSession(""); 
 const client = new TelegramClient(stringSession, apiId, apiHash, {
     connectionRetries: 5,
 });
 
-app.get('/', (req, res) => res.send('🚀 MTProto 4GB Stream Server is Online!'));
+// මුල් පිටුව (Render එකට Port එක බයින්ඩ් කර තබා ගැනීමට)
+app.get('/', (req, res) => {
+    res.send('🚀 MTProto 4GB Stream Server is Active and Running!');
+});
 
-// 4GB Stream Endpoint
+// 4GB Direct Stream Endpoint
 app.get('/download/:msgId/:fileName', async (req, res) => {
     try {
         const { msgId, fileName } = req.params;
@@ -28,7 +31,7 @@ app.get('/download/:msgId/:fileName', async (req, res) => {
         const messages = await client.getMessages(peer, { ids: [parseInt(msgId)] });
         
         if (!messages || messages.length === 0 || !messages[0].media) {
-            return res.status(404).send("File not found.");
+            return res.status(404).send("File not found on Telegram.");
         }
 
         const media = messages[0].media;
@@ -39,6 +42,7 @@ app.get('/download/:msgId/:fileName', async (req, res) => {
 
         const fileSize = document.size;
 
+        // බ්‍රවුසර් එකට Headers එකතු කිරීම
         res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
         res.setHeader('Content-Type', 'application/octet-stream');
         res.setHeader('Content-Length', fileSize);
@@ -65,24 +69,28 @@ app.get('/download/:msgId/:fileName', async (req, res) => {
         console.log(`✅ Streaming finished successfully!`);
 
     } catch (error) {
-        console.error("Streaming error details:", error);
-        if (!res.headersSent) res.status(500).send("Streaming error.");
+        console.error("Streaming error:", error);
+        if (!res.headersSent) res.status(500).send("Streaming server error.");
     }
 });
 
-// Client එක සහ සර්වර් එක පණ ගැන්වීම
+// GramJS Client එක පණ ගැන්වීමේ නිවැරදි ක්‍රමය
 (async () => {
     try {
-        console.log("🤖 Connecting to Telegram MTProto using Token...");
-        // මෙතනදී අපි ටෝකන් එක කෙලින්ම පාස් කරනවා string එකක් විදිහට තහවුරු කරලා
+        console.log("🤖 Connecting to Telegram MTProto...");
+        
+        // GramJS වලට බෝට් ටෝකන් එක කෙලින්ම String එකක් විදිහට දීම (Function එකක් නැතුව)
         await client.start({
-            botToken: async () => botToken,
+            botToken: botToken
         });
+        
         console.log("✅ Logged in successfully as Bot!");
 
+        // බෝට් ලොග් වුණාට පස්සේ විතරක් සර්වර් එක Port එකට බයින්ඩ් කිරීම
         app.listen(PORT, () => {
-            console.log(`Server is running on port ${PORT}`);
+            console.log(`🚀 Server web service actively running on port ${PORT}`);
         });
+
     } catch (err) {
         console.error("❌ Failed to start Telegram Client:", err.message);
     }
