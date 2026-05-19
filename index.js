@@ -8,21 +8,20 @@ const apiHash = process.env.API_HASH ? process.env.API_HASH.trim() : "";
 const botToken = process.env.BOT_TOKEN ? process.env.BOT_TOKEN.trim() : "";
 const PORT = process.env.PORT || 8080;
 
-app.get('/', (req, res) => res.send('🚀 Pure MTProto 4GB Stream Server is Active!'));
+app.get('/', (req, res) => res.send('🚀 MTProto 4GB Stream Bot is Active!'));
 
 const stringSession = new StringSession(""); 
 const client = new TelegramClient(stringSession, apiId, apiHash, {
     connectionRetries: 5,
 });
 
-// 4GB Direct Stream Endpoint
+// Stream Endpoint
 app.get('/download/:msgId/:fileName', async (req, res) => {
     try {
         const { msgId, fileName } = req.params;
         const peer = process.env.OWNER_ID; 
         
         const messages = await client.getMessages(peer, { ids: [parseInt(msgId)] });
-        
         if (!messages || messages.length === 0 || !messages[0].media) {
             return res.status(404).send("File not found.");
         }
@@ -35,7 +34,7 @@ app.get('/download/:msgId/:fileName', async (req, res) => {
         res.setHeader('Content-Type', 'application/octet-stream');
         res.setHeader('Content-Length', document.size);
 
-        const bufferSize = 512 * 1024; // 512KB Chunks
+        const bufferSize = 512 * 1024;
         let offset = 0;
 
         while (offset < document.size) {
@@ -55,28 +54,25 @@ app.get('/download/:msgId/:fileName', async (req, res) => {
     }
 });
 
-// 🌟 GramJS වල සර්වර් එකක් ඇතුලේ බොට් කෙනෙක් 100% ක්‍රෑෂ් නොවී ස්ටාර්ට් කරන නිවැරදිම ක්‍රමය
+// සර්වර් එක සහ බොට් ස්ටාර්ට් කිරීම
 (async () => {
     try {
-        console.log("🤖 Connecting to Telegram Core via MTProto...");
+        console.log("🤖 Initializing Telegram Connection...");
+        await client.connect();
         
-        // GramJS වලට ටර්මිනල් එකෙන් Input ඉල්ලන්න ඉඩ නොදී, 
-        // බොට් ටෝකන් එකෙන් විතරක් ලොග් වෙන්න කියලා මෙන්න මේ විදිහට Object එකක් පාස් කරන්න ඕනේ
+        console.log("🔑 Authenticating via Bot Token...");
+        // කිසිම කරදරයක් නැතුව කෙලින්ම සරලව ලොග් කරවන නිවැරදිම ක්‍රමය
         await client.start({
-            botToken: botToken,
-            forceSMS: false,
-            password: async () => "",
-            phoneCode: async () => "",
-            onError: (err) => console.log("GramJS Inner Error:", err.message)
+            botToken: () => Promise.resolve(botToken)
         });
         
-        console.log("✅ 100% Successfully logged in as Bot via MTProto!");
+        console.log("✅ Logged in successfully via MTProto!");
 
         app.listen(PORT, () => {
-            console.log(`🚀 Web stream service actively running on port ${PORT}`);
+            console.log(`🚀 Web service running on port ${PORT}`);
         });
 
     } catch (err) {
-        console.error("❌ Auth Failed:", err.message);
+        console.error("❌ Auth Error:", err.message);
     }
 })();
