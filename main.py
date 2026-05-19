@@ -8,7 +8,7 @@ from telethon import TelegramClient
 API_ID = 36130475  # 👈 ඔයාගේ API ID එක (Number එකක් විදිහට)
 API_HASH = "94fa20937754a3bbe85ade6441ecace4"  # 👈 ඔයාගේ API HASH එක
 BOT_TOKEN = "8961189305:AAE2IByMuTjT-sNVV8PibBADswaPWZPNa3g"  # 👈 BotFather ගෙන් ගත්ත BOT TOKEN එක
-OWNER_ID = "6435171356"  # 👈 ඔයාගේ ටෙලිග්‍රෑම් ID එක (හෝ චැනල් ID)
+OWNER_ID = "-1001816353852"  # 👈 ඔයාගේ ටෙලිග්‍රෑම් ID එක (හෝ චැනල් ID)
 
 app = FastAPI()
 client = TelegramClient('bot_session', API_ID, API_HASH)
