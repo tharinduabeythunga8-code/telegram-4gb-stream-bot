@@ -1,29 +1,30 @@
-const { TelegramClient, Api } = require('telegram');
+const { TelegramClient } = require('telegram');
 const { StringSession } = require('telegram/sessions');
 const express = require('express');
 const app = express();
 
-// Render එකේ සෙට් කරපු variables
-const apiId = parseInt(process.env.API_ID);
-const apiHash = process.env.API_HASH;
-const botToken = process.env.BOT_TOKEN;
+// ටෝකන් සහ අයිඩී ටික කෙලින්ම process.env හරහා ස්ථීරවම තහවුරු කරගන්නවා
+const apiId = Number(process.env.API_ID);
+const apiHash = String(process.env.API_HASH).trim();
+const botToken = String(process.env.BOT_TOKEN).trim();
 const PORT = process.env.PORT || 8080;
 
-const stringSession = new StringSession(""); // හිස් සෙෂන් එකක් පාවිච්චි කරන්නේ
+// variables ටික හරියට තියෙනවද කියලා සර්වර් ලොග් එකේ චෙක් කරගන්න ප්‍රින්ට් එකක්
+console.log(`🔍 Checking configuration: API_ID=${apiId ? 'OK' : 'MISSING'}, API_HASH=${apiHash ? 'OK' : 'MISSING'}, BOT_TOKEN=${botToken ? 'OK' : 'MISSING'}`);
+
+const stringSession = new StringSession(""); 
 const client = new TelegramClient(stringSession, apiId, apiHash, {
     connectionRetries: 5,
 });
 
-app.get('/', (res) => res.send('🚀 MTProto 4GB Stream Server is Online!'));
+app.get('/', (req, res) => res.send('🚀 MTProto 4GB Stream Server is Online!'));
 
-// 4GB Stream Endpoint එක
+// 4GB Stream Endpoint
 app.get('/download/:msgId/:fileName', async (req, res) => {
     try {
         const { msgId, fileName } = req.params;
-        
-        // අදාළ මැසේජ් එක ID එක හරහා ගන්නවා
-        // මෙතනදී OWNER_ID එක චැනල් එකක් හෝ ඔයාගේ ID එක වෙන්න ඕනේ
         const peer = process.env.OWNER_ID; 
+        
         const messages = await client.getMessages(peer, { ids: [parseInt(msgId)] });
         
         if (!messages || messages.length === 0 || !messages[0].media) {
@@ -34,20 +35,16 @@ app.get('/download/:msgId/:fileName', async (req, res) => {
         let document = media.document;
 
         if (!document && media.video) document = media.video;
-
         if (!document) return res.status(400).send("No downloadable media found.");
 
         const fileSize = document.size;
 
-        // Headers සෙට් කිරීම (ඩවුන්ලෝඩර් එකට සයිස් එක සහ නම කියා දීම)
         res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
         res.setHeader('Content-Type', 'application/octet-stream');
         res.setHeader('Content-Length', fileSize);
 
-        console.log(`📥 Streaming started for: ${fileName} (${fileSize} bytes)`);
+        console.log(`📥 Streaming started for: ${fileName}`);
 
-        // GramJS හරහා ෆයිල් එක කැබලි (Chunks) විදිහට ඇදලා බ්‍රවුසර් එකට Pipe කිරීම
-        // මේකෙන් තමයි 20MB සීමාව සම්පූර්ණයෙන්ම නැති වෙන්නේ
         const bufferSize = 512 * 1024; // 512KB chunks
         let offset = 0;
 
@@ -55,7 +52,7 @@ app.get('/download/:msgId/:fileName', async (req, res) => {
             const chunk = await client.downloadMedia(media, {
                 offset: offset,
                 limit: bufferSize,
-                workers: 4 // වේගය වැඩි කිරීමට Workers පාවිච්චි කරයි
+                workers: 4
             });
 
             if (!chunk || chunk.length === 0) break;
@@ -68,20 +65,25 @@ app.get('/download/:msgId/:fileName', async (req, res) => {
         console.log(`✅ Streaming finished successfully!`);
 
     } catch (error) {
-        console.error(error);
+        console.error("Streaming error details:", error);
         if (!res.headersSent) res.status(500).send("Streaming error.");
     }
 });
 
 // Client එක සහ සර්වර් එක පණ ගැන්වීම
 (async () => {
-    console.log("🤖 Connecting to Telegram MTProto...");
-    await client.start({
-        botToken: botToken,
-    });
-    console.log("✅ Logged in successfully as Bot!");
+    try {
+        console.log("🤖 Connecting to Telegram MTProto using Token...");
+        // මෙතනදී අපි ටෝකන් එක කෙලින්ම පාස් කරනවා string එකක් විදිහට තහවුරු කරලා
+        await client.start({
+            botToken: async () => botToken,
+        });
+        console.log("✅ Logged in successfully as Bot!");
 
-    app.listen(PORT, () => {
-        console.log(`Server is running on port ${PORT}`);
-    });
+        app.listen(PORT, () => {
+            console.log(`Server is running on port ${PORT}`);
+        });
+    } catch (err) {
+        console.error("❌ Failed to start Telegram Client:", err.message);
+    }
 })();
