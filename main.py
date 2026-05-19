@@ -4,11 +4,11 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from telethon import TelegramClient
 
-# ⚙️ ඔයා ලබාදුන් නිවැරදි විස්තර ටික මෙතනට ඇතුලත් කර ඇත
+# ⚙️ ඔයා ලබාදුන් නිවැරදි විස්තර සහ අලුත් චැනල් ID එක ඇතුලත් කර ඇත
 API_ID = 36130475  
 API_HASH = "94fa20937754a3bbe85ade6441ecace4"  
 BOT_TOKEN = "8961189305:AAE2IByMuTjT-sNVV8PibBADswaPWZPNa3g"  
-OWNER_ID = "-1002455117852"  # 👈 ඔයාගේ -100 සහිත චැනල් ID එක
+OWNER_ID = "-1003949193683"  # 👈 ඔයාගේ අලුත්ම චැනල් ID එක
 
 app = FastAPI()
 client = TelegramClient('bot_session', API_ID, API_HASH)
@@ -56,7 +56,7 @@ async def download_file(msg_id: int, file_name: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# බොට් සර්වර් එකට ලොග් කරවීම සහ චැනල් එක Cache කරවීම
+# බොට් සර්වර් එකට ලොග් කරවීම සහ චැනල් එක Cache කරවීම (Strict Integer Fix)
 @app.on_event("startup")
 async def startup_event():
     try:
@@ -64,9 +64,11 @@ async def startup_event():
         await client.start(bot_token=BOT_TOKEN)
         print("✅ 100% Successfully logged in as Bot via Telethon!")
         
-        # බොටාට චැනල් එක බලහත්කාරයෙන් අඳුන්වලා දීම (Entity Fix)
-        peer = int(OWNER_ID) if OWNER_ID.isdigit() or OWNER_ID.startswith('-') else OWNER_ID
-        await client.get_entity(peer)
+        # ටෙලිග්‍රෑම් එකට String අඳුරගන්න බැරි නිසා කෙලින්ම Integer එකක් බවට හරවනවා
+        channel_id_int = int(OWNER_ID)
+        
+        print(f"🔄 Trying to resolve channel entity for ID: {channel_id_int}")
+        await client.get_entity(channel_id_int)
         print("📁 [SUCCESS] Channel Entity cached and ready for streaming!")
         
     except Exception as e:
