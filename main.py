@@ -40,7 +40,8 @@ async def download_file(msg_id: int, file_name: str):
             raise HTTPException(status_code=400, detail="Invalid media type")
 
         # 4GB දක්වා Chunk වශයෙන් ස්ට්‍රීම් කිරීම පටන් ගනියි
-        download_iter = client.iter_download_stream(msg.media, request_size=512 * 1024)
+        # ✅ නිවැරදි අලුත් පේළිය
+download_iter = client.iter_download(msg.media, request_size=512 * 1024)
 
         headers = {
             "Content-Disposition": f'attachment; filename="{file_name}"',
